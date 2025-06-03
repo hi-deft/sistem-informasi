@@ -1,0 +1,2006 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Informasi Nilai Universitas (Lokal - Multi Dosen)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles to override or extend Tailwind, and for modal functionality */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3ff6; /* Light gray background */
+        }
+        /* Modal base styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 100; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+            display: flex; /* Use flexbox for centering */
+            align-items: center; /* Center vertically */
+            justify-content: center; /* Center horizontally */
+        }
+        /* Modal content box */
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto; /* Auto margin for centering */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%; /* Responsive width */
+            max-width: 600px; /* Max width for larger screens */
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: relative; /* Needed for close button positioning */
+        }
+        /* Close button for modals */
+        .close-button {
+            color: #aaa;
+            float: right; /* Position to the right */
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute; /* Absolute positioning within modal-content */
+            top: 10px;
+            right: 20px;
+        }
+        .close-button:hover, .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        /* Scrollable table container */
+        .table-container {
+            max-height: 250px; /* Fixed height for scrolling */
+            overflow-y: auto; /* Enable vertical scrolling */
+        }
+        /* Custom scrollbar styles for webkit browsers */
+        .table-container::-webkit-scrollbar { width: 8px; }
+        .table-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .table-container::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        .table-container::-webkit-scrollbar-thumb:hover { background: #555; }
+        /* Grid layout for component inputs */
+        .component-input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Responsive columns */
+            gap: 1rem; /* Gap between grid items */
+        }
+        /* General class for checkbox lists with scroll */
+        .checkbox-container {
+            max-height: 120px; /* Fixed height for scrollable checkboxes */
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div id="messageModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeMessageModal()">&times;</span>
+            <p id="messageText" class="text-lg"></p>
+            <div class="mt-4 flex justify-end">
+                <button onclick="closeMessageModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirmationModal" class="modal">
+        <div class="modal-content">
+            <h3 class="text-lg font-semibold mb-4" id="confirmationTitle">Konfirmasi</h3>
+            <p id="confirmationText" class="mb-6"></p>
+            <div class="flex justify-end space-x-3">
+                <button id="confirmActionButton" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Ya</button>
+                <button id="cancelActionButton" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400">Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="editUserModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeEditUserModal()">&times;</span>
+            <h3 class="text-xl font-semibold mb-4 text-indigo-600">Edit Pengguna</h3>
+            <input type="hidden" id="editUserId">
+            <div class="space-y-3">
+                <div>
+                    <label for="editUserEmail" class="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" id="editUserEmail" class="mt-1 block w-full p-2 border rounded-md" readonly>
+                </div>
+                <div>
+                    <label for="editUserFullName" class="block text-sm font-medium text-gray-700">Nama Lengkap</label>
+                    <input type="text" id="editUserFullName" class="mt-1 block w-full p-2 border rounded-md">
+                </div>
+                <div>
+                    <label for="editUserPassword" class="block text-sm font-medium text-gray-700">Password Baru (Kosongkan jika tidak ingin diubah)</label>
+                    <input type="password" id="editUserPassword" class="mt-1 block w-full p-2 border rounded-md">
+                </div>
+                <div>
+                    <label for="editUserRole" class="block text-sm font-medium text-gray-700">Peran</label>
+                    <select id="editUserRole" class="mt-1 block w-full p-2 border rounded-md">
+                        <option value="student">Mahasiswa</option>
+                        <option value="lecturer">Dosen</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="handleUpdateUser()" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Simpan Perubahan</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="editCourseModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeEditCourseModal()">&times;</span>
+            <h3 class="text-xl font-semibold mb-4 text-indigo-600">Edit Mata Kuliah</h3>
+            <input type="hidden" id="editCourseId">
+            <div class="space-y-3">
+                <div>
+                    <label for="editCourseCode" class="block text-sm font-medium text-gray-700">Kode Mata Kuliah</label>
+                    <input type="text" id="editCourseCode" class="mt-1 block w-full p-2 border rounded-md" readonly>
+                </div>
+                <div>
+                    <label for="editCourseName" class="block text-sm font-medium text-gray-700">Nama Mata Kuliah</label>
+                    <input type="text" id="editCourseName" class="mt-1 block w-full p-2 border rounded-md">
+                </div>
+                <div>
+                    <label for="editCourseCredits" class="block text-sm font-medium text-gray-700">SKS</label>
+                    <input type="number" id="editCourseCredits" class="mt-1 block w-full p-2 border rounded-md">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Dosen Pengampu (bisa lebih dari satu):</label>
+                    <div id="editCourseLecturersContainer" class="mt-1 checkbox-container space-y-1">
+                        </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Tawarkan di Semester:</label>
+                    <div id="editCourseOfferedSemestersContainer" class="mt-1 checkbox-container space-y-1">
+                        </div>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="handleUpdateCourse()" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Simpan Perubahan</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="manageCourseComponentsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeManageCourseComponentsModal()">&times;</span>
+            <h3 class="text-xl font-semibold mb-4 text-indigo-600">Atur Komponen Nilai untuk <span id="courseCodeForComponentMgmt" class="font-bold"></span></h3>
+            <input type="hidden" id="courseIdForComponentMgmt">
+            <div id="lecturerGradeComponentsContainer" class="space-y-2 mb-3">
+                </div>
+            <button type="button" onclick="addGradeComponentFieldLecturer()" class="mt-2 text-sm text-indigo-600 hover:text-indigo-800">+ Tambah Komponen</button>
+            <p class="text-xs text-gray-500 mt-1">Total bobot semua komponen harus 100%.</p>
+            <div class="mt-6 flex justify-end">
+                <button onclick="handleSaveCourseComponents()" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Simpan Komponen</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="editSemesterModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeEditSemesterModal()">&times;</span>
+            <h3 class="text-xl font-semibold mb-4 text-indigo-600">Edit Semester</h3>
+            <input type="hidden" id="editSemesterId">
+            <div>
+                <label for="editSemesterName" class="block text-sm font-medium text-gray-700">Nama Semester</label>
+                <input type="text" id="editSemesterName" placeholder="e.g., Gasal 2023/2024" class="mt-1 block w-full p-2 border rounded-md">
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="handleUpdateSemester()" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Simpan Perubahan</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="enrollStudentsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeEnrollStudentsModal()">&times;</span>
+            <h3 class="text-xl font-semibold mb-4 text-indigo-600">Atur Mahasiswa Terdaftar untuk <span id="enrollCourseCode" class="font-bold"></span></h3>
+            <input type="hidden" id="enrollCourseId">
+            <div id="enrollStudentsContainer" class="checkbox-container space-y-2 mb-4">
+                </div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="handleSaveEnrollment()" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Simpan Pendaftaran</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="selectCoursesModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeSelectCoursesModal()">&times;</span>
+            <h3 class="text-xl font-semibold mb-4 text-indigo-600">Pilih Mata Kuliah</h3>
+            <p class="text-sm text-gray-600 mb-4">Pilih mata kuliah yang ingin Anda ambil:</p>
+            <div id="studentCourseSelectionContainer" class="checkbox-container space-y-2 mb-4">
+                </div>
+            <div class="mt-6 flex justify-end">
+                <button onclick="handleSaveStudentCourses()" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Simpan Pilihan</button>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-indigo-700">Sistem Informasi Nilai Universitas (Lokal - Multi Dosen)</h1>
+            <p class="text-gray-600 text-sm">Mode Penyimpanan: LocalStorage</p>
+        </header>
+
+        <div id="loginSection" class="mb-8 p-6 bg-white rounded-lg shadow-md max-w-md mx-auto">
+            <h2 class="text-2xl font-semibold mb-6 text-indigo-600 text-center">Login Pengguna</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="loginEmail" class="block text-sm font-medium text-gray-700">Email (Username)</label>
+                    <input type="email" id="loginEmail" placeholder="email@example.com" class="mt-1 block w-full p-3 border rounded-md">
+                </div>
+                <div>
+                    <label for="loginPassword" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="loginPassword" placeholder="********" class="mt-1 block w-full p-3 border rounded-md">
+                </div>
+                <button onclick="handleLogin()" class="w-full px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Login</button>
+            </div>
+            <p class="mt-4 text-sm text-gray-500">Admin default: admin@example.com / password.</p>
+        </div>
+
+        <div id="mainContent" class="hidden">
+            <div class="mb-6 p-4 bg-indigo-600 text-white rounded-lg shadow-md">
+                <div class="flex flex-col sm:flex-row justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-semibold">Dashboard</h2>
+                        <p>Selamat datang, <span id="loggedInUserName" class="font-medium"></span> (<span id="loggedInUserRole" class="italic"></span>)</p>
+                    </div>
+                    <button onclick="logout()" class="mt-2 sm:mt-0 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md">Logout</button>
+                </div>
+            </div>
+
+            <div id="adminPanel" class="hidden p-6 bg-white rounded-lg shadow-md mb-6">
+                <h3 class="text-2xl font-bold mb-6 text-indigo-700 border-b pb-2">Panel Admin</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-1 space-y-4 p-4 border rounded-lg bg-gray-50">
+                        <h4 class="text-xl font-semibold text-indigo-600">Kelola Pengguna</h4>
+                        <input type="email" id="adminUserEmail" placeholder="Email Pengguna" class="w-full p-2 border rounded-md">
+                        <input type="text" id="adminUserFullName" placeholder="Nama Lengkap" class="w-full p-2 border rounded-md">
+                        <input type="password" id="adminUserPassword" placeholder="Password" class="w-full p-2 border rounded-md">
+                        <select id="adminUserRole" class="w-full p-2 border rounded-md">
+                            <option value="student">Mahasiswa</option>
+                            <option value="lecturer">Dosen</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                        <button onclick="adminAddUser()" class="w-full px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600">Tambah Pengguna</button>
+                        <div class="mt-4 table-container">
+                            <table class="min-w-full bg-white border">
+                                <thead class="bg-gray-200">
+                                    <tr>
+                                        <th class="py-2 px-3 border-b text-left">Email</th>
+                                        <th class="py-2 px-3 border-b text-left">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminUsersTable">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-1 space-y-4 p-4 border rounded-lg bg-gray-50">
+                        <h4 class="text-xl font-semibold text-indigo-600">Kelola Mata Kuliah</h4>
+                        <input type="text" id="adminCourseCode" placeholder="Kode MK" class="w-full p-2 border rounded-md">
+                        <input type="text" id="adminCourseName" placeholder="Nama MK" class="w-full p-2 border rounded-md">
+                        <input type="number" id="adminCourseCredits" placeholder="SKS" class="w-full p-2 border rounded-md">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Dosen Pengampu:</label>
+                            <div id="addCourseLecturersContainer" class="mt-1 checkbox-container space-y-1">
+                                </div>
+                        </div>
+                        <div class="mt-2">
+                            <label class="block text-sm font-medium text-gray-700">Tawarkan di Semester:</label>
+                            <div id="addCourseOfferedSemestersContainer" class="mt-1 checkbox-container space-y-1">
+                                </div>
+                        </div>
+                        <button onclick="adminAddCourse()" class="w-full mt-4 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600">Tambah Mata Kuliah</button>
+                        <div class="mt-4 table-container">
+                             <table class="min-w-full bg-white border">
+                                <thead class="bg-gray-200">
+                                    <tr>
+                                        <th class="py-2 px-3 border-b text-left">Kode MK</th>
+                                        <th class="py-2 px-3 border-b text-left">Nama MK</th>
+                                        <th class="py-2 px-3 border-b text-left">Dosen</th>
+                                        <th class="py-2 px-3 border-b text-left">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminCoursesTable">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="lg:col-span-1 space-y-4 p-4 border rounded-lg bg-gray-50">
+                        <h4 class="text-xl font-semibold text-indigo-600">Kelola Semester</h4>
+                        <input type="text" id="adminSemesterName" placeholder="Nama Semester (e.g., Gasal 2023/2024)" class="w-full p-2 border rounded-md">
+                        <button onclick="adminAddSemester()" class="w-full px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600">Tambah Semester</button>
+                        <div class="mt-4 table-container">
+                            <table class="min-w-full bg-white border">
+                                <thead class="bg-gray-200">
+                                    <tr>
+                                        <th class="py-2 px-3 border-b text-left">Nama Semester</th>
+                                        <th class="py-2 px-3 border-b text-left">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminSemestersTable">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-6 p-4 border rounded-lg bg-gray-50">
+                    <h4 class="text-xl font-semibold text-indigo-600 mb-4">Kelola Pendaftaran Mata Kuliah Mahasiswa</h4>
+                    <div class="table-container">
+                        <table class="min-w-full bg-white border">
+                            <thead class="bg-gray-200">
+                                <tr>
+                                    <th class="py-2 px-3 border-b text-left">Kode MK</th>
+                                    <th class="py-2 px-3 border-b text-left">Nama MK</th>
+                                    <th class="py-2 px-3 border-b text-left">Mahasiswa Terdaftar</th>
+                                    <th class="py-2 px-3 border-b text-left">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminEnrollmentTable">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="lecturerPanel" class="hidden p-6 bg-white rounded-lg shadow-md mb-6">
+                <h3 class="text-2xl font-bold mb-6 text-indigo-700 border-b pb-2">Panel Dosen</h3>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h4 class="text-xl font-semibold text-indigo-600">Input/Edit Nilai</h4>
+                        <button id="manageComponentsBtn" onclick="openManageCourseComponentsModalWrapper()" class="px-3 py-1.5 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm hidden">Atur Komponen Nilai</button>
+                    </div>
+                    <select id="lecturerSelectCourse" class="w-full p-2 border rounded-md mb-4">
+                        <option value="">Pilih Mata Kuliah</option>
+                        </select>
+                    
+                    <div id="lecturerGradeInputArea" class="hidden space-y-4 p-4 border rounded-lg bg-gray-50">
+                        <h5 class="text-lg font-medium text-indigo-500">Input Nilai untuk <span id="selectedCourseForGrading" class="font-bold"></span></h5>
+                        <select id="lecturerSelectStudent" class="w-full p-2 border rounded-md">
+                            <option value="">Pilih Mahasiswa</option>
+                            </select>
+                        <input type="text" id="lecturerSemester" placeholder="Semester (e.g., Gasal 2023/2024)" class="w-full p-2 border rounded-md">
+                        <div id="lecturerGradeComponentsInput" class="space-y-3 component-input-grid border-t pt-3 mt-3">
+                            </div>
+                        <textarea id="lecturerGradeNotes" placeholder="Catatan Umum (opsional)" class="w-full p-2 border rounded-md" rows="2"></textarea>
+                        <button onclick="lecturerSubmitGrade()" class="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">Simpan Nilai</button>
+                    </div>
+
+                    <div class="mt-6 table-container">
+                        <h5 class="text-lg font-medium text-indigo-500 mb-2">Daftar Nilai Telah Diinput (<span id="courseForGradeTableView">Pilih MK</span>)</h5>
+                         <table class="min-w-full bg-white border">
+                            <thead class="bg-gray-200">
+                                <tr>
+                                    <th class="py-2 px-3 border-b text-left">Mahasiswa</th>
+                                    <th class="py-2 px-3 border-b text-left">Semester</th>
+                                    <th class="py-2 px-3 border-b text-center">Nilai Akhir</th>
+                                    <th class="py-2 px-3 border-b text-left">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lecturerGradesTable">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="studentPanel" class="hidden p-6 bg-white rounded-lg shadow-md mb-6">
+                <h3 class="text-2xl font-bold mb-6 text-indigo-700 border-b pb-2">Panel Mahasiswa</h3>
+                
+                <div class="mb-6 p-4 border rounded-lg bg-gray-50">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-xl font-semibold text-indigo-600">Mata Kuliah Saya</h4>
+                        <button onclick="openSelectCoursesModal()" class="px-3 py-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm">Pilih Mata Kuliah</button>
+                    </div>
+                    <div id="studentSelectedCoursesTableContainer" class="table-container">
+                        <table class="min-w-full bg-white border">
+                            <thead class="bg-gray-200">
+                                <tr>
+                                    <th class="py-2 px-3 border-b text-left">Kode MK</th>
+                                    <th class="py-2 px-3 border-b text-left">Nama MK</th>
+                                    <th class="py-2 px-3 border-b text-center">SKS</th>
+                                    <th class="py-2 px-3 border-b text-left">Dosen</th>
+                                    <th class="py-2 px-3 border-b text-left">Semester Ditawarkan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentSelectedCoursesTable">
+                                </tbody>
+                        </table>
+                    </div>
+                    <p id="noSelectedCoursesMessage" class="text-gray-500 mt-4 hidden">Anda belum memilih mata kuliah.</p>
+                </div>
+
+                <h4 class="text-xl font-semibold text-indigo-600 mb-4">Transkrip Nilai Saya</h4>
+                <div id="studentGradesTableContainer" class="table-container">
+                     <table class="min-w-full bg-white border">
+                        <thead class="bg-gray-200">
+                            <tr>
+                                <th class="py-2 px-3 border-b text-left">Kode MK</th>
+                                <th class="py-2 px-3 border-b text-left">Nama MK</th>
+                                <th class="py-2 px-3 border-b text-center">SKS</th>
+                                <th class="py-2 px-3 border-b text-left">Semester</th>
+                                <th class="py-2 px-3 border-b text-center">Nilai Akhir</th>
+                                <th class="py-2 px-3 border-b text-center">Detail</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentGradesTable">
+                            </tbody>
+                    </table>
+                </div>
+                <p id="noGradesMessage" class="text-gray-500 mt-4 hidden">Belum ada nilai yang tersedia.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- LocalStorage Helper Functions ---
+        // Keys for storing data in LocalStorage. Versioning added for potential future schema changes.
+        const LS_USERS_KEY = 'appUsersData_auth_v4';
+        const LS_COURSES_KEY = 'appCoursesData_auth_v4';
+        const LS_GRADES_KEY = 'appGradesData_auth_v4';
+        const LS_SEMESTERS_KEY = 'appSemestersData_auth_v4';
+
+        /**
+         * Retrieves data from LocalStorage.
+         * @param {string} key - The key to retrieve.
+         * @returns {Array} Parsed data or an empty array if not found.
+         */
+        function getData(key) {
+            const data = localStorage.getItem(key);
+            return data ? JSON.parse(data) : [];
+        }
+
+        /**
+         * Saves data to LocalStorage.
+         * @param {string} key - The key to save data under.
+         * @param {Array} data - The data array to save.
+         */
+        function saveData(key, data) {
+            localStorage.setItem(key, JSON.stringify(data));
+        }
+
+        // --- Global State Variables ---
+        let currentUserEmail = null;
+        let currentUserRole = null;
+        let currentUserFullName = null;
+
+        // --- UI Element References ---
+        const loginSection = document.getElementById('loginSection');
+        const mainContent = document.getElementById('mainContent');
+        const adminPanel = document.getElementById('adminPanel');
+        const lecturerPanel = document.getElementById('lecturerPanel');
+        const studentPanel = document.getElementById('studentPanel');
+        const loggedInUserNameEl = document.getElementById('loggedInUserName');
+        const loggedInUserRoleEl = document.getElementById('loggedInUserRole');
+        const manageComponentsBtn = document.getElementById('manageComponentsBtn');
+
+        // --- Modal Element References and Functions ---
+        const messageModal = document.getElementById('messageModal');
+        const messageText = document.getElementById('messageText');
+        /**
+         * Displays a general message modal.
+         * @param {string} message - The message to display.
+         */
+        window.showMessageModal = (message) => {
+            messageText.innerHTML = message; // Use innerHTML to allow for basic HTML in messages
+            messageModal.style.display = "flex"; // Use flex to center the modal
+        };
+        /** Closes the message modal. */
+        window.closeMessageModal = () => { messageModal.style.display = "none"; };
+
+        const confirmationModal = document.getElementById('confirmationModal');
+        const confirmationText = document.getElementById('confirmationText');
+        const confirmActionButton = document.getElementById('confirmActionButton');
+        const cancelActionButton = document.getElementById('cancelActionButton');
+        let currentConfirmAction = null; // Stores the callback functions for confirmation
+
+        /**
+         * Displays a confirmation modal.
+         * @param {string} message - The confirmation message.
+         * @param {function} onConfirm - Callback function to execute on confirmation.
+         * @param {function} [onCancel=null] - Optional callback function to execute on cancellation.
+         */
+        window.showConfirmationModal = (message, onConfirm, onCancel = null) => {
+            confirmationText.textContent = message;
+            currentConfirmAction = { confirm: onConfirm, cancel: onCancel };
+            confirmationModal.style.display = "flex"; // Use flex to center the modal
+        };
+        // Event listener for the confirm button in the confirmation modal
+        confirmActionButton.onclick = () => {
+            if (currentConfirmAction && currentConfirmAction.confirm) currentConfirmAction.confirm();
+            confirmationModal.style.display = "none";
+            currentConfirmAction = null; // Clear the action
+        };
+        // Event listener for the cancel button in the confirmation modal
+        cancelActionButton.onclick = () => {
+            if (currentConfirmAction && currentConfirmAction.cancel) currentConfirmAction.cancel();
+            confirmationModal.style.display = "none";
+            currentConfirmAction = null; // Clear the action
+        };
+        
+        const editUserModal = document.getElementById('editUserModal');
+        /** Closes the edit user modal. */
+        window.closeEditUserModal = () => { editUserModal.style.display = "none"; };
+        
+        const editCourseModal = document.getElementById('editCourseModal');
+        /** Closes the edit course modal. */
+        window.closeEditCourseModal = () => { editCourseModal.style.display = "none"; };
+
+        const manageCourseComponentsModal = document.getElementById('manageCourseComponentsModal');
+        /** Closes the manage course components modal. */
+        window.closeManageCourseComponentsModal = () => { manageCourseComponentsModal.style.display = "none"; };
+
+        const editSemesterModal = document.getElementById('editSemesterModal');
+        /** Closes the edit semester modal. */
+        window.closeEditSemesterModal = () => { editSemesterModal.style.display = "none"; };
+
+        const enrollStudentsModal = document.getElementById('enrollStudentsModal');
+        /** Closes the enroll students modal. */
+        window.closeEnrollStudentsModal = () => { enrollStudentsModal.style.display = "none"; };
+
+        // Student course selection modal
+        const selectCoursesModal = document.getElementById('selectCoursesModal');
+        /** Closes the student course selection modal. */
+        window.closeSelectCoursesModal = () => { selectCoursesModal.style.display = "none"; };
+
+
+        // Close modals when clicking outside of them
+        window.onclick = function(event) {
+            if (event.target == messageModal) closeMessageModal();
+            if (event.target == confirmationModal) { confirmationModal.style.display = "none"; currentConfirmAction = null; }
+            if (event.target == editUserModal) closeEditUserModal();
+            if (event.target == editCourseModal) closeEditCourseModal();
+            if (event.target == manageCourseComponentsModal) closeManageCourseComponentsModal();
+            if (event.target == enrollStudentsModal) closeEnrollStudentsModal();
+            if (event.target == editSemesterModal) closeEditSemesterModal();
+            if (event.target == selectCoursesModal) closeSelectCoursesModal();
+        };
+        
+        // --- Application Initialization ---
+        /** Initializes the application, setting up default admin user if no users exist. */
+        function initializeApp() {
+            let users = getData(LS_USERS_KEY);
+            if (users.length === 0) {
+                // Add a default admin user if no users are found
+                users.push({ 
+                    id: 'admin-' + Date.now(), // Simple unique ID
+                    email: 'admin@example.com',
+                    name: 'Admin Utama',
+                    password: 'password', // In a real app, this would be hashed
+                    role: 'admin',
+                    createdAt: new Date().toISOString() 
+                });
+                saveData(LS_USERS_KEY, users);
+            }
+            // Ensure courses have the new enrolledStudentEmails property
+            let courses = getData(LS_COURSES_KEY);
+            let updatedCourses = false;
+            courses.forEach(course => {
+                if (!course.enrolledStudentEmails) {
+                    course.enrolledStudentEmails = [];
+                    updatedCourses = true;
+                }
+            });
+            if (updatedCourses) {
+                saveData(LS_COURSES_KEY, courses);
+            }
+        }
+
+        // --- Authentication Functions ---
+        /** Handles user login. */
+        window.handleLogin = () => {
+            const emailInput = document.getElementById('loginEmail').value.trim();
+            const passwordInput = document.getElementById('loginPassword').value.trim();
+
+            if (!emailInput || !passwordInput) {
+                showMessageModal("Email dan Password harus diisi.");
+                return;
+            }
+
+            const users = getData(LS_USERS_KEY);
+            const user = users.find(u => u.email === emailInput);
+
+            if (user && user.password === passwordInput) {
+                currentUserEmail = user.email;
+                currentUserRole = user.role;
+                currentUserFullName = user.name;
+
+                loginSection.classList.add('hidden'); // Hide login section
+                mainContent.classList.remove('hidden'); // Show main content
+                updateUIBasedOnRole(); // Update UI based on logged-in user's role
+
+                // Clear login fields
+                document.getElementById('loginEmail').value = '';
+                document.getElementById('loginPassword').value = '';
+            } else if (user) {
+                showMessageModal("Password salah.");
+            } else {
+                showMessageModal(`Pengguna dengan email ${emailInput} tidak ditemukan.`);
+            }
+        };
+
+        /** Handles user logout. */
+        window.logout = () => {
+            // Clear current user state
+            currentUserEmail = null;
+            currentUserRole = null;
+            currentUserFullName = null;
+
+            loginSection.classList.remove('hidden'); // Show login section
+            mainContent.classList.add('hidden'); // Hide main content
+
+            // Hide all role-specific panels
+            ['adminPanel', 'lecturerPanel', 'studentPanel'].forEach(id => document.getElementById(id).classList.add('hidden'));
+        };
+
+        /** Updates the UI visibility based on the current user's role. */
+        function updateUIBasedOnRole() {
+            // Hide all panels first
+            ['adminPanel', 'lecturerPanel', 'studentPanel'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            
+            // Update dashboard welcome message
+            loggedInUserNameEl.textContent = currentUserFullName;
+            loggedInUserRoleEl.textContent = currentUserRole;
+
+            // Show panel relevant to the current user's role
+            if (currentUserRole === 'admin') {
+                adminPanel.classList.remove('hidden');
+                loadAdminData(); // Load data specific to admin panel
+            } else if (currentUserRole === 'lecturer') {
+                lecturerPanel.classList.remove('hidden');
+                loadLecturerData(); // Load data specific to lecturer panel
+            } else if (currentUserRole === 'student') {
+                studentPanel.classList.remove('hidden');
+                loadStudentData(); // Load data specific to student panel
+            }
+        }
+
+        // --- Admin Panel Functions ---
+        /** Loads all data required for the admin panel. */
+        function loadAdminData() {
+            loadAdminUsers();
+            loadAdminCourses();
+            loadAdminSemesters(); 
+            loadAdminEnrollmentData(); // Load enrollment data
+            // Populate lecturer and semester checkboxes for course addition/editing
+            populateLecturerCheckboxes('addCourseLecturersContainer');
+            populateLecturerCheckboxes('editCourseLecturersContainer');
+            populateSemesterCheckboxes('addCourseOfferedSemestersContainer'); 
+            populateSemesterCheckboxes('editCourseOfferedSemestersContainer'); 
+        }
+
+        /** Loads and displays the list of users in the admin panel. */
+        function loadAdminUsers() {
+            const usersTable = document.getElementById('adminUsersTable');
+            const users = getData(LS_USERS_KEY);
+            usersTable.innerHTML = ''; // Clear existing rows
+            
+            if (users.length === 0) {
+                usersTable.innerHTML = '<tr><td colspan="2" class="text-center py-4">Tidak ada pengguna.</td></tr>';
+                return;
+            }
+
+            users.forEach(user => {
+                const row = usersTable.insertRow();
+                row.innerHTML = `
+                    <td class="py-2 px-3 border-b">${user.email} (${user.name} - ${user.role})</td>
+                    <td class="py-2 px-3 border-b">
+                        <button onclick="openEditUserModal('${user.id}')" class="text-blue-500 hover:text-blue-700 mr-2">Edit</button>
+                        ${user.email === 'admin@example.com' ? '' : `<button onclick="adminDeleteUser('${user.id}', '${user.email}')" class="text-red-500 hover:text-red-700">Hapus</button>`}
+                    </td>
+                `;
+            });
+        }
+        
+        /** Handles adding a new user from the admin panel. */
+        window.adminAddUser = () => {
+            const email = document.getElementById('adminUserEmail').value.trim();
+            const name = document.getElementById('adminUserFullName').value.trim();
+            const password = document.getElementById('adminUserPassword').value;
+            const role = document.getElementById('adminUserRole').value;
+
+            if (!email || !name || !password || !role) {
+                showMessageModal("Semua field pengguna harus diisi.");
+                return;
+            }
+            // Basic email format validation
+            if (!/\S+@\S+\.\S+/.test(email)) {
+                showMessageModal("Format email tidak valid.");
+                return;
+            }
+
+            let users = getData(LS_USERS_KEY);
+            // Check for duplicate email
+            if (users.find(u => u.email === email)) {
+                showMessageModal(`Pengguna dengan email ${email} sudah ada.`);
+                return;
+            }
+
+            users.push({ 
+                id: 'user-' + Date.now(), // Simple unique ID
+                email, name, password, role,
+                createdAt: new Date().toISOString() 
+            });
+            saveData(LS_USERS_KEY, users);
+            showMessageModal("Pengguna berhasil ditambahkan.");
+
+            // Clear input fields
+            ['adminUserEmail', 'adminUserFullName', 'adminUserPassword'].forEach(id => document.getElementById(id).value = '');
+            loadAdminUsers(); // Refresh user list
+
+            // If a lecturer was added, update lecturer checkboxes in course management
+            if (role === 'lecturer') {
+                populateLecturerCheckboxes('addCourseLecturersContainer');
+                populateLecturerCheckboxes('editCourseLecturersContainer');
+            }
+            // If a student was added, refresh enrollment section
+            if (role === 'student') {
+                loadAdminEnrollmentData();
+            }
+        };
+
+        /**
+         * Opens the edit user modal and populates it with selected user's data.
+         * @param {string} userId - The ID of the user to edit.
+         */
+        window.openEditUserModal = (userId) => {
+            const users = getData(LS_USERS_KEY);
+            const user = users.find(u => u.id === userId);
+            if (user) {
+                document.getElementById('editUserId').value = user.id;
+                document.getElementById('editUserEmail').value = user.email;
+                document.getElementById('editUserFullName').value = user.name;
+                document.getElementById('editUserPassword').value = ''; // Clear password field for security
+                document.getElementById('editUserRole').value = user.role;
+                // Prevent changing role of the default admin
+                document.getElementById('editUserRole').disabled = user.email === 'admin@example.com';
+                editUserModal.style.display = "flex";
+            } else {
+                showMessageModal("Pengguna tidak ditemukan.");
+            }
+        };
+
+        /** Handles updating user data from the edit user modal. */
+        window.handleUpdateUser = () => {
+            const userId = document.getElementById('editUserId').value;
+            const name = document.getElementById('editUserFullName').value.trim();
+            const password = document.getElementById('editUserPassword').value;
+            const role = document.getElementById('editUserRole').value;
+
+            if (!name || !role) {
+                showMessageModal("Nama dan Peran harus diisi.");
+                return;
+            }
+
+            let users = getData(LS_USERS_KEY);
+            const userIndex = users.findIndex(u => u.id === userId);
+
+            if (userIndex !== -1) {
+                const oldRole = users[userIndex].role; // Store old role to check if lecturer checkboxes need update
+                const oldEmail = users[userIndex].email; // Store old email for grade/enrollment updates
+                users[userIndex].name = name;
+                // Ensure admin role cannot be changed if it's the default admin
+                users[userIndex].role = users[userIndex].email === 'admin@example.com' ? 'admin' : role;
+                if (password) users[userIndex].password = password; // Only update password if provided
+                
+                saveData(LS_USERS_KEY, users);
+                showMessageModal("Data pengguna berhasil diperbarui.");
+                closeEditUserModal();
+                loadAdminUsers(); // Refresh user list
+
+                // If role changed to/from lecturer, update course lecturer checkboxes
+                if (oldRole !== role && (oldRole === 'lecturer' || role === 'lecturer')) {
+                    populateLecturerCheckboxes('addCourseLecturersContainer');
+                    populateLecturerCheckboxes('editCourseLecturersContainer');
+                }
+                // If role changed to/from student, or if email changed (though email is readonly now)
+                // we should update enrollment and grades if the email was changed.
+                // Since email is readonly, we only need to consider role changes for enrollment.
+                if (oldRole !== role && (oldRole === 'student' || role === 'student')) {
+                    loadAdminEnrollmentData(); // Refresh enrollment table
+                }
+                // If the user was a student and their email changed (though not possible with readonly),
+                // or if their role changed from student, we need to update grades.
+                // This is a more complex scenario for LocalStorage. For simplicity, we'll assume email is stable.
+            } else {
+                showMessageModal("Gagal memperbarui: Pengguna tidak ditemukan.");
+            }
+        };
+        
+        /**
+         * Handles deleting a user from the admin panel.
+         * @param {string} userId - The ID of the user to delete.
+         * @param {string} userEmail - The email of the user to delete (for confirmation message).
+         */
+        window.adminDeleteUser = (userId, userEmail) => {
+            if (userEmail === 'admin@example.com') {
+                showMessageModal("Admin default tidak dapat dihapus.");
+                return;
+            }
+            showConfirmationModal(`Anda yakin ingin menghapus pengguna ${userEmail}?`, () => {
+                let users = getData(LS_USERS_KEY);
+                const userToDelete = users.find(u => u.id === userId);
+                if (!userToDelete) { showMessageModal("Pengguna tidak ditemukan."); return; }
+
+                users = users.filter(u => u.id !== userId);
+                saveData(LS_USERS_KEY, users);
+
+                // If the deleted user was a student, remove their grades and unenroll them from all courses
+                if (userToDelete.role === 'student') {
+                    let grades = getData(LS_GRADES_KEY);
+                    grades = grades.filter(g => g.studentEmail !== userEmail);
+                    saveData(LS_GRADES_KEY, grades);
+
+                    let courses = getData(LS_COURSES_KEY);
+                    courses.forEach(course => {
+                        if (course.enrolledStudentEmails && course.enrolledStudentEmails.includes(userEmail)) {
+                            course.enrolledStudentEmails = course.enrolledStudentEmails.filter(email => email !== userEmail);
+                        }
+                    });
+                    saveData(LS_COURSES_KEY, courses);
+                    loadAdminEnrollmentData(); // Refresh enrollment table
+                } 
+                // If the deleted user was a lecturer, remove them from courses they teach
+                else if (userToDelete.role === 'lecturer') {
+                    let courses = getData(LS_COURSES_KEY);
+                    courses.forEach(course => { 
+                        if (course.lecturerEmails && course.lecturerEmails.includes(userEmail)) {
+                            course.lecturerEmails = course.lecturerEmails.filter(email => email !== userEmail);
+                        }
+                    });
+                    saveData(LS_COURSES_KEY, courses);
+                    loadAdminCourses(); // Refresh course list as lecturers might have changed
+                }
+                showMessageModal(`Pengguna ${userEmail} berhasil dihapus.`);
+                loadAdminUsers(); // Refresh user list
+                // Update lecturer checkboxes if a lecturer was deleted
+                if (userToDelete.role === 'lecturer') {
+                    populateLecturerCheckboxes('addCourseLecturersContainer');
+                    populateLecturerCheckboxes('editCourseLecturersContainer');
+                }
+            });
+        };
+
+        /**
+         * Populates a container with checkboxes for lecturers.
+         * @param {string} containerId - The ID of the container element.
+         * @param {Array<string>} [selectedLecturerEmails=[]] - An array of emails of lecturers to pre-check.
+         */
+        function populateLecturerCheckboxes(containerId, selectedLecturerEmails = []) {
+            const container = document.getElementById(containerId);
+            const users = getData(LS_USERS_KEY);
+            const lecturers = users.filter(u => u.role === 'lecturer');
+            container.innerHTML = ''; // Clear existing checkboxes
+
+            if (lecturers.length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-500">Belum ada dosen yang ditambahkan.</p>';
+                return;
+            }
+
+            lecturers.forEach(lecturer => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center';
+                const checkboxId = `${containerId}-lecturer-${lecturer.id}`;
+                div.innerHTML = `
+                    <input id="${checkboxId}" name="courseLecturers" type="checkbox" value="${lecturer.email}" 
+                            class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                            ${selectedLecturerEmails.includes(lecturer.email) ? 'checked' : ''}>
+                    <label for="${checkboxId}" class="ml-2 block text-sm text-gray-900">${lecturer.name} (${lecturer.email})</label>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        /**
+         * Gets the emails of selected lecturers from a checkbox container.
+         * @param {string} containerId - The ID of the container element.
+         * @returns {Array<string>} An array of selected lecturer emails.
+         */
+        function getSelectedLecturerEmails(containerId) {
+            const container = document.getElementById(containerId);
+            const selectedEmails = [];
+            const checkboxes = container.querySelectorAll('input[name="courseLecturers"]:checked');
+            checkboxes.forEach(checkbox => {
+                selectedEmails.push(checkbox.value);
+            });
+            return selectedEmails;
+        }
+        
+        /**
+         * Populates a container with checkboxes for semesters.
+         * @param {string} containerId - The ID of the container element.
+         * @param {Array<string>} [selectedSemesterIds=[]] - An array of IDs of semesters to pre-check.
+         */
+        function populateSemesterCheckboxes(containerId, selectedSemesterIds = []) {
+            const container = document.getElementById(containerId);
+            const semesters = getData(LS_SEMESTERS_KEY);
+            container.innerHTML = ''; // Clear existing checkboxes
+            
+            if (semesters.length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-500">Belum ada semester yang ditambahkan.</p>';
+                return;
+            }
+
+            semesters.forEach(semester => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center';
+                const checkboxId = `${containerId}-semester-${semester.id}`;
+                div.innerHTML = `
+                    <input id="${checkboxId}" name="offeredSemesters" type="checkbox" value="${semester.id}" 
+                            class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                            ${selectedSemesterIds.includes(semester.id) ? 'checked' : ''}>
+                    <label for="${checkboxId}" class="ml-2 block text-sm text-gray-900">${semester.name}</label>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        /**
+         * Gets the IDs of selected semesters from a checkbox container.
+         * @param {string} containerId - The ID of the container element.
+         * @returns {Array<string>} An array of selected semester IDs.
+         */
+        function getSelectedSemesterIds(containerId) {
+            const container = document.getElementById(containerId);
+            const selectedIds = [];
+            const checkboxes = container.querySelectorAll('input[name="offeredSemesters"]:checked');
+            checkboxes.forEach(checkbox => {
+                selectedIds.push(checkbox.value);
+            });
+            return selectedIds;
+        }
+
+        /** Loads and displays the list of courses in the admin panel. */
+        function loadAdminCourses() {
+            const coursesTable = document.getElementById('adminCoursesTable');
+            const courses = getData(LS_COURSES_KEY);
+            const users = getData(LS_USERS_KEY); // For fetching lecturer names
+            coursesTable.innerHTML = ''; // Clear existing rows
+            
+            if (courses.length === 0) {
+                coursesTable.innerHTML = '<tr><td colspan="4" class="text-center py-4">Tidak ada mata kuliah.</td></tr>';
+                return;
+            }
+
+            courses.forEach(course => {
+                const row = coursesTable.insertRow();
+                let lecturerNames = "Belum ada";
+                if (course.lecturerEmails && course.lecturerEmails.length > 0) {
+                    lecturerNames = course.lecturerEmails.map(email => {
+                        const lecturer = users.find(u => u.email === email);
+                        return lecturer ? lecturer.name : email; // Display name if found, else email
+                    }).join(', ');
+                }
+                row.innerHTML = `
+                    <td class="py-2 px-3 border-b">${course.courseCode}</td>
+                    <td class="py-2 px-3 border-b">${course.courseName}</td>
+                    <td class="py-2 px-3 border-b text-xs">${lecturerNames}</td>
+                    <td class="py-2 px-3 border-b">
+                        <button onclick="openEditCourseModal('${course.id}')" class="text-blue-500 hover:text-blue-700 mr-2">Edit</button>
+                        <button onclick="adminDeleteCourse('${course.id}', '${course.courseCode}')" class="text-red-500 hover:text-red-700">Hapus</button>
+                    </td>
+                `;
+            });
+        }
+
+        /** Handles adding a new course from the admin panel. */
+        window.adminAddCourse = () => { 
+            const courseCode = document.getElementById('adminCourseCode').value.trim();
+            const courseName = document.getElementById('adminCourseName').value.trim();
+            const credits = parseInt(document.getElementById('adminCourseCredits').value);
+            const lecturerEmails = getSelectedLecturerEmails('addCourseLecturersContainer');
+            const offeredInSemesters = getSelectedSemesterIds('addCourseOfferedSemestersContainer');
+
+            if (!courseCode || !courseName || isNaN(credits) || credits <= 0) {
+                showMessageModal("Kode MK, Nama MK, dan SKS harus diisi dengan benar.");
+                return;
+            }
+            let courses = getData(LS_COURSES_KEY);
+            // Check for duplicate course code
+            if (courses.find(c => c.courseCode === courseCode)) {
+                showMessageModal(`Mata kuliah dengan kode ${courseCode} sudah ada.`);
+                return;
+            }
+            courses.push({
+                id: 'course-' + Date.now(), // Simple unique ID
+                courseCode, courseName, credits,
+                lecturerEmails: lecturerEmails,
+                gradeComponents: [], // Initialize with empty grade components
+                offeredInSemesters: offeredInSemesters,
+                enrolledStudentEmails: [], // Initialize with empty enrolled students
+                createdAt: new Date().toISOString()
+            });
+            saveData(LS_COURSES_KEY, courses);
+            showMessageModal("Mata kuliah berhasil ditambahkan.");
+
+            // Clear input fields and checkboxes
+            ['adminCourseCode', 'adminCourseName', 'adminCourseCredits'].forEach(id => document.getElementById(id).value = '');
+            document.querySelectorAll('#addCourseLecturersContainer input[type="checkbox"]').forEach(cb => cb.checked = false);
+            document.querySelectorAll('#addCourseOfferedSemestersContainer input[type="checkbox"]').forEach(cb => cb.checked = false);
+            
+            loadAdminCourses(); // Refresh course list
+            loadAdminEnrollmentData(); // Refresh enrollment list
+        };
+
+        /**
+         * Opens the edit course modal and populates it with selected course's data.
+         * @param {string} courseId - The ID of the course to edit.
+         */
+        window.openEditCourseModal = (courseId) => { 
+            const courses = getData(LS_COURSES_KEY);
+            const course = courses.find(c => c.id === courseId);
+            if (course) {
+                document.getElementById('editCourseId').value = course.id;
+                document.getElementById('editCourseCode').value = course.courseCode;
+                document.getElementById('editCourseName').value = course.courseName;
+                document.getElementById('editCourseCredits').value = course.credits;
+                // Populate lecturer and semester checkboxes with current selections
+                populateLecturerCheckboxes('editCourseLecturersContainer', course.lecturerEmails || []);
+                populateSemesterCheckboxes('editCourseOfferedSemestersContainer', course.offeredInSemesters || []);
+                editCourseModal.style.display = "flex";
+            } else {
+                showMessageModal("Mata kuliah tidak ditemukan.");
+            }
+        };
+        
+        /** Handles updating course data from the edit course modal. */
+        window.handleUpdateCourse = () => { 
+            const courseId = document.getElementById('editCourseId').value;
+            const courseName = document.getElementById('editCourseName').value.trim();
+            const credits = parseInt(document.getElementById('editCourseCredits').value);
+            const lecturerEmails = getSelectedLecturerEmails('editCourseLecturersContainer');
+            const offeredInSemesters = getSelectedSemesterIds('editCourseOfferedSemestersContainer');
+
+            if (!courseName || isNaN(credits) || credits <= 0) {
+                showMessageModal("Nama MK dan SKS harus diisi dengan benar.");
+                return;
+            }
+            let courses = getData(LS_COURSES_KEY);
+            const courseIndex = courses.findIndex(c => c.id === courseId);
+
+            if (courseIndex !== -1) {
+                courses[courseIndex].courseName = courseName;
+                courses[courseIndex].credits = credits;
+                courses[courseIndex].lecturerEmails = lecturerEmails;
+                courses[courseIndex].offeredInSemesters = offeredInSemesters;
+                saveData(LS_COURSES_KEY, courses);
+                showMessageModal("Data mata kuliah berhasil diperbarui.");
+                closeEditCourseModal();
+                loadAdminCourses(); // Refresh course list
+                loadAdminEnrollmentData(); // Refresh enrollment list
+
+                // If the current user is a lecturer and this course is relevant to them, refresh their view
+                if (currentUserRole === 'lecturer' && courses[courseIndex].lecturerEmails.includes(currentUserEmail)) {
+                    loadLecturerData();
+                } else if (currentUserRole === 'lecturer' && document.getElementById('lecturerSelectCourse').value === courses[courseIndex].courseCode) {
+                    // If current lecturer was teaching this course but is no longer assigned, clear their view for this course
+                    document.getElementById('lecturerSelectCourse').value = "";
+                    document.getElementById('lecturerSelectCourse').dispatchEvent(new Event('change')); // Manually trigger change
+                }
+            } else {
+                showMessageModal("Gagal memperbarui: Mata kuliah tidak ditemukan.");
+            }
+        };
+        
+        /**
+         * Handles deleting a course from the admin panel.
+         * @param {string} courseId - The ID of the course to delete.
+         * @param {string} courseCode - The code of the course to delete (for confirmation message).
+         */
+        window.adminDeleteCourse = (courseId, courseCode) => {
+            showConfirmationModal(`Anda yakin ingin menghapus mata kuliah ${courseCode}? Ini juga akan menghapus semua nilai terkait.`, () => {
+                let courses = getData(LS_COURSES_KEY);
+                courses = courses.filter(c => c.id !== courseId);
+                saveData(LS_COURSES_KEY, courses);
+
+                // Also delete all grades associated with this course
+                let grades = getData(LS_GRADES_KEY);
+                grades = grades.filter(g => g.courseCode !== courseCode);
+                saveData(LS_GRADES_KEY, grades);
+                
+                showMessageModal(`Mata kuliah ${courseCode} dan nilai terkaitnya telah dihapus.`);
+                loadAdminCourses(); // Refresh course list
+                loadAdminEnrollmentData(); // Refresh enrollment list
+
+                // If the deleted course was selected in the lecturer panel, reset the lecturer's view
+                if (currentUserRole === 'lecturer' && document.getElementById('lecturerSelectCourse').value === courseCode) {
+                    document.getElementById('lecturerSelectCourse').value = "";
+                    document.getElementById('lecturerSelectCourse').dispatchEvent(new Event('change')); // Manually trigger change
+                }
+                // If current user is student, refresh their view as a course might be removed
+                if (currentUserRole === 'student') {
+                    loadStudentData();
+                }
+            });
+        };
+
+        // --- Semester Management (Admin) ---
+        /** Loads and displays the list of semesters in the admin panel. */
+        function loadAdminSemesters() {
+            const semestersTable = document.getElementById('adminSemestersTable');
+            const semesters = getData(LS_SEMESTERS_KEY);
+            semestersTable.innerHTML = '';
+            if (semesters.length === 0) {
+                semestersTable.innerHTML = '<tr><td colspan="2" class="text-center py-4">Belum ada semester.</td></tr>'; 
+                // Ensure checkboxes are updated even if no semesters exist
+                populateSemesterCheckboxes('addCourseOfferedSemestersContainer');
+                populateSemesterCheckboxes('editCourseOfferedSemestersContainer');
+                return;
+            }
+            semesters.forEach(semester => {
+                const row = semestersTable.insertRow();
+                row.innerHTML = `
+                    <td class="py-2 px-3 border-b">${semester.name}</td>
+                    <td class="py-2 px-3 border-b">
+                        <button onclick="openEditSemesterModal('${semester.id}')" class="text-blue-500 hover:text-blue-700 mr-2">Edit</button>
+                        <button onclick="adminDeleteSemester('${semester.id}', '${semester.name}')" class="text-red-500 hover:text-red-700">Hapus</button>
+                    </td>
+                `;
+            });
+            // Always ensure the course creation/edit forms reflect the latest semesters
+            populateSemesterCheckboxes('addCourseOfferedSemestersContainer');
+            populateSemesterCheckboxes('editCourseOfferedSemestersContainer');
+        }
+
+        /** Handles adding a new semester from the admin panel. */
+        window.adminAddSemester = () => {
+            const semesterName = document.getElementById('adminSemesterName').value.trim();
+            if (!semesterName) {
+                showMessageModal("Nama semester harus diisi.");
+                return;
+            }
+            let semesters = getData(LS_SEMESTERS_KEY);
+            // Check for duplicate semester name (case-insensitive)
+            if (semesters.find(s => s.name.toLowerCase() === semesterName.toLowerCase())) {
+                showMessageModal(`Semester dengan nama "${semesterName}" sudah ada.`);
+                return;
+            }
+            semesters.push({
+                id: 'semester-' + Date.now(), // Simple unique ID
+                name: semesterName,
+                createdAt: new Date().toISOString()
+            });
+            saveData(LS_SEMESTERS_KEY, semesters);
+            showMessageModal("Semester berhasil ditambahkan.");
+            document.getElementById('adminSemesterName').value = ''; // Clear input field
+            loadAdminSemesters(); // Refresh semester list
+        };
+
+        /**
+         * Opens the edit semester modal and populates it with selected semester's data.
+         * @param {string} semesterId - The ID of the semester to edit.
+         */
+        window.openEditSemesterModal = (semesterId) => {
+            const semesters = getData(LS_SEMESTERS_KEY);
+            const semester = semesters.find(s => s.id === semesterId);
+            if (semester) {
+                document.getElementById('editSemesterId').value = semester.id;
+                document.getElementById('editSemesterName').value = semester.name;
+                editSemesterModal.style.display = "flex";
+            } else {
+                showMessageModal("Semester tidak ditemukan.");
+            }
+        };
+
+        /** Handles updating semester data from the edit semester modal. */
+        window.handleUpdateSemester = () => {
+            const semesterId = document.getElementById('editSemesterId').value;
+            const semesterName = document.getElementById('editSemesterName').value.trim();
+            if (!semesterName) {
+                showMessageModal("Nama semester tidak boleh kosong.");
+                return;
+            }
+            let semesters = getData(LS_SEMESTERS_KEY);
+            const semesterIndex = semesters.findIndex(s => s.id === semesterId);
+            // Check for duplicate name excluding the current semester being edited
+            if (semesters.find(s => s.name.toLowerCase() === semesterName.toLowerCase() && s.id !== semesterId)) {
+                showMessageModal(`Semester dengan nama "${semesterName}" sudah ada.`);
+                return;
+            }
+
+            if (semesterIndex !== -1) {
+                semesters[semesterIndex].name = semesterName;
+                saveData(LS_SEMESTERS_KEY, semesters);
+                showMessageModal("Nama semester berhasil diperbarui.");
+                closeEditSemesterModal();
+                loadAdminSemesters(); // Refresh semester list
+                loadAdminCourses(); // Refresh courses to update semester names in display if needed
+            } else {
+                showMessageModal("Gagal memperbarui: Semester tidak ditemukan.");
+            }
+        };
+
+        /**
+         * Handles deleting a semester from the admin panel.
+         * @param {string} semesterId - The ID of the semester to delete.
+         * @param {string} semesterName - The name of the semester to delete (for confirmation message).
+         */
+        window.adminDeleteSemester = (semesterId, semesterName) => {
+            showConfirmationModal(`Anda yakin ingin menghapus semester "${semesterName}"? Mata kuliah yang terkait dengan semester ini tidak akan terhapus, namun asosiasinya akan hilang.`, () => {
+                let semesters = getData(LS_SEMESTERS_KEY);
+                semesters = semesters.filter(s => s.id !== semesterId);
+                saveData(LS_SEMESTERS_KEY, semesters);
+
+                // Remove this semester from any courses it was offered in
+                let courses = getData(LS_COURSES_KEY);
+                courses.forEach(course => {
+                    if (course.offeredInSemesters && course.offeredInSemesters.includes(semesterId)) {
+                        course.offeredInSemesters = course.offeredInSemesters.filter(id => id !== semesterId);
+                    }
+                });
+                saveData(LS_COURSES_KEY, courses);
+
+                showMessageModal(`Semester "${semesterName}" berhasil dihapus.`);
+                loadAdminSemesters(); // Refresh semester list
+                loadAdminCourses(); // Refresh course list to reflect changes in offered semesters
+            });
+        };
+
+        // --- Admin Enrollment Management Functions ---
+        /** Loads and displays the list of courses with their enrolled students in the admin panel. */
+        function loadAdminEnrollmentData() {
+            const enrollmentTable = document.getElementById('adminEnrollmentTable');
+            const courses = getData(LS_COURSES_KEY);
+            const users = getData(LS_USERS_KEY); // For fetching student names
+
+            enrollmentTable.innerHTML = ''; // Clear existing rows
+
+            if (courses.length === 0) {
+                enrollmentTable.innerHTML = '<tr><td colspan="4" class="text-center py-4">Tidak ada mata kuliah untuk dikelola pendaftarannya.</td></tr>';
+                return;
+            }
+
+            courses.forEach(course => {
+                const row = enrollmentTable.insertRow();
+                let enrolledStudentNames = "Belum ada";
+                if (course.enrolledStudentEmails && course.enrolledStudentEmails.length > 0) {
+                    enrolledStudentNames = course.enrolledStudentEmails.map(email => {
+                        const student = users.find(u => u.email === email);
+                        return student ? student.name : email;
+                    }).join(', ');
+                }
+                row.innerHTML = `
+                    <td class="py-2 px-3 border-b">${course.courseCode}</td>
+                    <td class="py-2 px-3 border-b">${course.courseName}</td>
+                    <td class="py-2 px-3 border-b text-xs">${enrolledStudentNames}</td>
+                    <td class="py-2 px-3 border-b">
+                        <button onclick="openEnrollStudentsModal('${course.id}')" class="px-3 py-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm">Atur Mahasiswa</button>
+                    </td>
+                `;
+            });
+        }
+
+        /**
+         * Opens the enroll students modal and populates it with student checkboxes.
+         * @param {string} courseId - The ID of the course for which to manage enrollment.
+         */
+        window.openEnrollStudentsModal = (courseId) => {
+            const courses = getData(LS_COURSES_KEY);
+            const course = courses.find(c => c.id === courseId);
+            if (!course) {
+                showMessageModal("Mata kuliah tidak ditemukan.");
+                return;
+            }
+
+            document.getElementById('enrollCourseId').value = course.id;
+            document.getElementById('enrollCourseCode').textContent = `${course.courseName} (${course.courseCode})`;
+            const enrollStudentsContainer = document.getElementById('enrollStudentsContainer');
+            enrollStudentsContainer.innerHTML = ''; // Clear existing checkboxes
+
+            const allUsers = getData(LS_USERS_KEY);
+            const students = allUsers.filter(u => u.role === 'student');
+
+            if (students.length === 0) {
+                enrollStudentsContainer.innerHTML = '<p class="text-xs text-gray-500">Belum ada mahasiswa yang terdaftar di sistem.</p>';
+                enrollStudentsModal.style.display = "flex";
+                return;
+            }
+
+            students.forEach(student => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center';
+                const checkboxId = `enroll-student-${student.id}`;
+                const isEnrolled = course.enrolledStudentEmails && course.enrolledStudentEmails.includes(student.email);
+                div.innerHTML = `
+                    <input id="${checkboxId}" name="enrollStudents" type="checkbox" value="${student.email}" 
+                            class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                            ${isEnrolled ? 'checked' : ''}>
+                    <label for="${checkboxId}" class="ml-2 block text-sm text-gray-900">${student.name} (${student.email})</label>
+                `;
+                enrollStudentsContainer.appendChild(div);
+            });
+            enrollStudentsModal.style.display = "flex";
+        };
+
+        /** Handles saving the student enrollment changes for a course. */
+        window.handleSaveEnrollment = () => {
+            const courseId = document.getElementById('enrollCourseId').value;
+            const enrollStudentsContainer = document.getElementById('enrollStudentsContainer');
+            const selectedStudentEmails = [];
+            const checkboxes = enrollStudentsContainer.querySelectorAll('input[name="enrollStudents"]:checked');
+            checkboxes.forEach(checkbox => {
+                selectedStudentEmails.push(checkbox.value);
+            });
+
+            let courses = getData(LS_COURSES_KEY);
+            const courseIndex = courses.findIndex(c => c.id === courseId);
+
+            if (courseIndex !== -1) {
+                courses[courseIndex].enrolledStudentEmails = selectedStudentEmails;
+                saveData(LS_COURSES_KEY, courses);
+                showMessageModal("Pendaftaran mahasiswa berhasil diperbarui.");
+                closeEnrollStudentsModal();
+                loadAdminEnrollmentData(); // Refresh the enrollment table
+                // If current user is student, refresh their view
+                if (currentUserRole === 'student') {
+                    loadStudentData();
+                }
+                // If current user is lecturer and the selected course is this one, refresh student dropdown
+                if (currentUserRole === 'lecturer' && document.getElementById('lecturerSelectCourse').value === courses[courseIndex].courseCode) {
+                   document.getElementById('lecturerSelectCourse').dispatchEvent(new Event('change'));
+                }
+            } else {
+                showMessageModal("Gagal memperbarui pendaftaran: Mata kuliah tidak ditemukan.");
+            }
+        };
+
+        // --- Lecturer Panel Functions ---
+        /** Adds a new input field for a grade component in the "Manage Components" modal. */
+        window.addGradeComponentFieldLecturer = () => {
+            const container = document.getElementById('lecturerGradeComponentsContainer');
+            const div = document.createElement('div');
+            div.className = 'flex space-x-2 items-center mb-2';
+            div.innerHTML = `
+                <input type="text" placeholder="Nama Komponen" class="flex-grow p-1 border rounded-md text-sm component-name-lecturer">
+                <input type="number" placeholder="Bobot %" class="w-24 p-1 border rounded-md text-sm component-weight-lecturer">
+                <button type="button" onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-700 text-sm p-1">X</button>
+            `;
+            container.appendChild(div);
+        };
+
+        /**
+         * Opens the modal for managing grade components for the selected course.
+         * This function is a wrapper to ensure a course is selected before opening the modal.
+         */
+        window.openManageCourseComponentsModalWrapper = () => {
+            const selectedCourseCode = document.getElementById('lecturerSelectCourse').value;
+            if (!selectedCourseCode) {
+                showMessageModal("Pilih mata kuliah terlebih dahulu.");
+                return;
+            }
+            const courses = getData(LS_COURSES_KEY); 
+            const course = courses.find(c => c.courseCode === selectedCourseCode);
+            if (!course) {
+                showMessageModal("Data mata kuliah tidak ditemukan.");
+                return;
+            }
+
+            document.getElementById('courseIdForComponentMgmt').value = course.id;
+            document.getElementById('courseCodeForComponentMgmt').textContent = course.courseCode;
+            const container = document.getElementById('lecturerGradeComponentsContainer');
+            container.innerHTML = ''; // Clear existing fields
+
+            // Populate fields with existing components or add a new one if none exist
+            if (course.gradeComponents && course.gradeComponents.length > 0) {
+                course.gradeComponents.forEach(comp => {
+                    const div = document.createElement('div');
+                    div.className = 'flex space-x-2 items-center mb-2';
+                    div.innerHTML = `
+                        <input type="text" value="${comp.typeName}" placeholder="Nama Komponen" class="flex-grow p-1 border rounded-md text-sm component-name-lecturer">
+                        <input type="number" value="${comp.weight}" placeholder="Bobot %" class="w-24 p-1 border rounded-md text-sm component-weight-lecturer">
+                        <button type="button" onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-700 text-sm p-1">X</button>
+                    `;
+                    container.appendChild(div);
+                });
+            } else {
+                addGradeComponentFieldLecturer(); // Add a default empty field
+            }
+            manageCourseComponentsModal.style.display = "flex";
+        };
+
+        /** Handles saving the grade components for a course. */
+        window.handleSaveCourseComponents = () => {
+            const courseId = document.getElementById('courseIdForComponentMgmt').value;
+            const container = document.getElementById('lecturerGradeComponentsContainer');
+            const components = [];
+            let totalWeight = 0;
+            const componentDivs = container.querySelectorAll('.flex.space-x-2');
+            let valid = true;
+            const typeNames = new Set(); // To check for unique component names
+
+            componentDivs.forEach(div => {
+                const nameInput = div.querySelector('.component-name-lecturer');
+                const weightInput = div.querySelector('.component-weight-lecturer');
+                const name = nameInput.value.trim();
+                const weight = parseInt(weightInput.value);
+
+                if (!name || isNaN(weight) || weight <= 0 || weight > 100) {
+                    valid = false;
+                    return; // Exit forEach early if invalid
+                }
+                if (typeNames.has(name)) { 
+                    showMessageModal(`Nama komponen nilai "${name}" harus unik.`);
+                    valid = false;
+                    return; // Exit forEach early if duplicate
+                }
+                typeNames.add(name);
+                components.push({ typeName: name, weight: weight });
+                totalWeight += weight;
+            });
+
+            if (!valid) { 
+                // Only show a generic message if no specific error (like duplicate name) was shown
+                if (!componentDivs.length && !components.length) { /* no message if all fields removed */ }
+                else if (!messageModal.style.display || messageModal.style.display === "none") { 
+                    showMessageModal("Nama komponen harus diisi, unik, dan bobot harus angka positif (1-100).");
+                }
+                return;
+            }
+            // Validate total weight only if there are components
+            if (components.length > 0 && totalWeight !== 100) { 
+                showMessageModal(`Total bobot komponen harus 100%, saat ini ${totalWeight}%.`);
+                return;
+            }
+            
+            let courses = getData(LS_COURSES_KEY);
+            const courseIndex = courses.findIndex(c => c.id === courseId);
+            if (courseIndex !== -1) {
+                courses[courseIndex].gradeComponents = components; 
+                saveData(LS_COURSES_KEY, courses);
+                showMessageModal("Komponen nilai berhasil disimpan.");
+                closeManageCourseComponentsModal();
+                // Trigger change event on course select to refresh grade input fields
+                document.getElementById('lecturerSelectCourse').dispatchEvent(new Event('change')); 
+            } else {
+                showMessageModal("Mata kuliah tidak ditemukan untuk menyimpan komponen.");
+            }
+        };
+
+        /** Loads data for the lecturer panel, including courses taught and student dropdown. */
+        function loadLecturerData() {
+            const courseSelect = document.getElementById('lecturerSelectCourse');
+            const gradeInputArea = document.getElementById('lecturerGradeInputArea');
+            const selectedCourseForGrading = document.getElementById('selectedCourseForGrading');
+            const courseForGradeTableView = document.getElementById('courseForGradeTableView');
+            const lecturerGradeComponentsInput = document.getElementById('lecturerGradeComponentsInput');
+
+            const allCourses = getData(LS_COURSES_KEY); 
+            // Filter courses to show only those assigned to the current lecturer
+            const coursesTaught = allCourses.filter(c => c.lecturerEmails && c.lecturerEmails.includes(currentUserEmail));
+
+            courseSelect.innerHTML = '<option value="">Pilih Mata Kuliah</option>';
+            if (coursesTaught.length === 0) {
+                courseSelect.innerHTML = '<option value="">Anda tidak mengajar mata kuliah.</option>';
+                manageComponentsBtn.classList.add('hidden'); // Hide component management button if no courses
+            } else {
+                manageComponentsBtn.classList.add('hidden'); // Initially hide, show when course selected
+            }
+            coursesTaught.forEach(course => {
+                const option = document.createElement('option');
+                option.value = course.courseCode;
+                option.textContent = `${course.courseName} (${course.courseCode})`;
+                courseSelect.appendChild(option);
+            });
+            
+            // Reset grade input area and tables
+            gradeInputArea.classList.add('hidden');
+            document.getElementById('lecturerGradesTable').innerHTML = '';
+            selectedCourseForGrading.textContent = '';
+            courseForGradeTableView.textContent = 'Pilih MK';
+
+            // Event listener for when a course is selected
+            courseSelect.onchange = () => {
+                const selectedCourseCode = courseSelect.value;
+                const currentCourses = getData(LS_COURSES_KEY); 
+                lecturerGradeComponentsInput.innerHTML = ''; // Clear previous component inputs
+
+                if (selectedCourseCode) {
+                    const course = currentCourses.find(c => c.courseCode === selectedCourseCode);
+                    if (!course) { 
+                        showMessageModal("Data mata kuliah tidak ditemukan atau telah berubah. Silakan pilih ulang.");
+                        gradeInputArea.classList.add('hidden');
+                        manageComponentsBtn.classList.add('hidden');
+                        return;
+                    }
+                    selectedCourseForGrading.textContent = `${course.courseName} (${selectedCourseCode})`;
+                    courseForGradeTableView.textContent = selectedCourseCode;
+                    gradeInputArea.classList.remove('hidden');
+                    manageComponentsBtn.classList.remove('hidden'); // Show component management button
+                    
+                    // Filter students to only show those enrolled in the selected course
+                    const allUsers = getData(LS_USERS_KEY);
+                    const enrolledStudents = allUsers.filter(u => u.role === 'student' && course.enrolledStudentEmails.includes(u.email));
+                    loadStudentsForGradingDropdown(document.getElementById('lecturerSelectStudent'), enrolledStudents); 
+                    
+                    // Dynamically create input fields for grade components
+                    if (course.gradeComponents && course.gradeComponents.length > 0) {
+                        course.gradeComponents.forEach(comp => {
+                            const div = document.createElement('div');
+                            div.className = 'flex flex-col';
+                            div.innerHTML = `
+                                <label for="comp-${comp.typeName.replace(/\s+/g, '-')}" class="block text-sm font-medium text-gray-700">${comp.typeName} (Bobot: ${comp.weight}%)</label>
+                                <input type="number" id="comp-${comp.typeName.replace(/\s+/g, '-')}" data-type="${comp.typeName}" data-weight="${comp.weight}" placeholder="Nilai (0-100)" class="mt-1 w-full p-2 border rounded-md component-score-input">
+                            `;
+                            lecturerGradeComponentsInput.appendChild(div);
+                        });
+                    } else {
+                        lecturerGradeComponentsInput.innerHTML = `<p class="text-sm text-gray-500">Belum ada komponen nilai yang diatur untuk mata kuliah ini. Klik "Atur Komponen Nilai".</p>`;
+                    }
+                    loadGradesForLecturerCourse(selectedCourseCode); // Load existing grades for this course
+                } else {
+                    // Reset UI if no course is selected
+                    gradeInputArea.classList.add('hidden');
+                    manageComponentsBtn.classList.add('hidden');
+                    document.getElementById('lecturerGradesTable').innerHTML = '';
+                    selectedCourseForGrading.textContent = '';
+                    courseForGradeTableView.textContent = 'Pilih MK';
+                }
+            };
+        }
+        
+        /**
+         * Populates the student dropdown for grade input with a given list of students.
+         * @param {HTMLSelectElement} selectElement - The select element to populate.
+         * @param {Array<Object>} students - An array of student objects to populate the dropdown with.
+         */
+        function loadStudentsForGradingDropdown(selectElement, students) {
+            selectElement.innerHTML = '<option value="">Pilih Mahasiswa</option>';
+            if (students.length === 0) {
+                selectElement.innerHTML += '<option value="" disabled>Tidak ada mahasiswa terdaftar</option>';
+                return;
+            }
+            students.forEach(student => {
+                const option = document.createElement('option');
+                option.value = student.email; 
+                option.textContent = `${student.name} (${student.email})`;
+                selectElement.appendChild(option);
+            });
+        }
+
+        /** Handles submitting or updating a student's grade for a course. */
+        window.lecturerSubmitGrade = () => {
+            const courseCode = document.getElementById('lecturerSelectCourse').value;
+            const studentEmail = document.getElementById('lecturerSelectStudent').value;
+            const semester = document.getElementById('lecturerSemester').value.trim();
+            const notes = document.getElementById('lecturerGradeNotes').value.trim();
+
+            if (!courseCode || !studentEmail || !semester) {
+                showMessageModal("MK, Mahasiswa, dan Semester harus diisi.");
+                return;
+            }
+
+            const courses = getData(LS_COURSES_KEY);
+            const currentCourse = courses.find(c => c.courseCode === courseCode);
+            if (!currentCourse || !currentCourse.gradeComponents || currentCourse.gradeComponents.length === 0) {
+                showMessageModal("Komponen nilai belum diatur untuk mata kuliah ini. Silakan atur melalui tombol 'Atur Komponen Nilai'.");
+                return;
+            }
+
+            // Check if the selected student is actually enrolled in this course
+            if (!currentCourse.enrolledStudentEmails || !currentCourse.enrolledStudentEmails.includes(studentEmail)) {
+                showMessageModal(`Mahasiswa ${studentEmail} tidak terdaftar di mata kuliah ini.`);
+                return;
+            }
+
+            const componentScoreInputs = document.querySelectorAll('#lecturerGradeComponentsInput .component-score-input');
+            const componentScores = [];
+            let allScoresValid = true;
+            
+            // Validate that the number of input fields matches the defined components
+            if (componentScoreInputs.length !== currentCourse.gradeComponents.length) {
+                showMessageModal("Jumlah input komponen tidak sesuai dengan definisi mata kuliah. Coba pilih ulang mata kuliah atau refresh halaman.");
+                return;
+            }
+
+            // Collect and validate scores for each component
+            for (let i = 0; i < currentCourse.gradeComponents.length; i++) {
+                const definedComponent = currentCourse.gradeComponents[i];
+                const inputField = document.getElementById(`comp-${definedComponent.typeName.replace(/\s+/g, '-')}`);
+                
+                if (!inputField) { 
+                    // This scenario indicates a UI desync, very unlikely with current logic but good for robustness
+                    showMessageModal(`Input field untuk komponen "${definedComponent.typeName}" tidak ditemukan. UI mungkin tidak sinkron.`);
+                    allScoresValid = false;
+                    break;
+                }
+                const score = parseFloat(inputField.value);
+
+                if (isNaN(score) || score < 0 || score > 100) {
+                    allScoresValid = false; 
+                }
+                componentScores.push({
+                    typeName: definedComponent.typeName, 
+                    weight: definedComponent.weight,
+                    score: isNaN(score) ? null : score // Store null if invalid, will be caught by allScoresValid check
+                });
+            }
+
+            if (!allScoresValid || componentScores.some(cs => cs.score === null)) {
+                showMessageModal("Semua komponen nilai harus diisi dengan angka antara 0 dan 100.");
+                return;
+            }
+
+            // Calculate final score based on component scores and weights
+            let finalScore = 0;
+            componentScores.forEach(cs => { finalScore += (cs.score * cs.weight) / 100; });
+            finalScore = parseFloat(finalScore.toFixed(2)); // Round to 2 decimal places
+
+            let grades = getData(LS_GRADES_KEY);
+            // Check if a grade entry for this student, course, and semester already exists
+            const existingGradeIndex = grades.findIndex(g => 
+                g.courseCode === courseCode && g.studentEmail === studentEmail && g.semester === semester
+            );
+
+            const gradeData = {
+                id: existingGradeIndex !== -1 ? grades[existingGradeIndex].id : ('grade-' + Date.now()), // Reuse ID if updating
+                studentEmail, courseCode, semester, notes, componentScores, finalScore,
+                lastUpdatedBy: currentUserEmail,
+                updatedAt: new Date().toISOString()
+            };
+
+            if (existingGradeIndex !== -1) {
+                gradeData.createdAt = grades[existingGradeIndex].createdAt; // Preserve original creation date
+                grades[existingGradeIndex] = gradeData;
+                showMessageModal("Nilai berhasil diperbarui.");
+            } else {
+                gradeData.createdAt = new Date().toISOString(); // Set creation date for new entry
+                grades.push(gradeData);
+                showMessageModal("Nilai berhasil disimpan.");
+            }
+            saveData(LS_GRADES_KEY, grades);
+            
+            // Clear input fields after submission
+            document.getElementById('lecturerSelectStudent').value = '';
+            componentScoreInputs.forEach(input => input.value = ''); 
+            document.getElementById('lecturerGradeNotes').value = '';
+            loadGradesForLecturerCourse(courseCode); // Refresh the grades table
+            // Also refresh student data if the current user is a student
+            if (currentUserRole === 'student' && currentUserEmail === studentEmail) {
+                loadStudentData();
+            }
+        };
+
+        /**
+         * Loads and displays grades for a specific course in the lecturer panel.
+         * @param {string} courseCode - The code of the course to load grades for.
+         */
+        function loadGradesForLecturerCourse(courseCode) {
+            const gradesTable = document.getElementById('lecturerGradesTable');
+            const allGrades = getData(LS_GRADES_KEY);
+            // Filter grades relevant to the selected course
+            const courseGrades = allGrades.filter(g => g.courseCode === courseCode);
+            const allUsers = getData(LS_USERS_KEY);
+
+            gradesTable.innerHTML = ''; // Clear existing rows
+            if (courseGrades.length === 0) {
+                gradesTable.innerHTML = `<tr><td colspan="4" class="text-center py-4">Belum ada nilai untuk MK ini.</td></tr>`;
+                return;
+            }
+
+            courseGrades.forEach(grade => {
+                const student = allUsers.find(u => u.email === grade.studentEmail);
+                const studentName = student ? student.name : grade.studentEmail; // Display student name if found, else email
+                const row = gradesTable.insertRow();
+                row.innerHTML = `
+                    <td class="py-2 px-3 border-b">${studentName} (${grade.studentEmail})</td>
+                    <td class="py-2 px-3 border-b">${grade.semester}</td>
+                    <td class="py-2 px-3 border-b text-center">${grade.finalScore}</td>
+                    <td class="py-2 px-3 border-b">
+                        <button onclick="lecturerEditGrade('${grade.id}')" class="text-blue-500 hover:text-blue-700 mr-2">Edit</button>
+                        <button onclick="lecturerDeleteGrade('${grade.id}')" class="text-red-500 hover:text-red-700">Hapus</button>
+                    </td>
+                `;
+            });
+        }
+
+        /**
+         * Populates the grade input form with data from an existing grade entry for editing.
+         * @param {string} gradeId - The ID of the grade entry to edit.
+         */
+        window.lecturerEditGrade = (gradeId) => {
+            const grades = getData(LS_GRADES_KEY);
+            const gradeToEdit = grades.find(g => g.id === gradeId);
+
+            if (gradeToEdit) {
+                // Set the course dropdown value and trigger its change event
+                document.getElementById('lecturerSelectCourse').value = gradeToEdit.courseCode;
+                const event = new Event('change'); 
+                document.getElementById('lecturerSelectCourse').dispatchEvent(event);
+                
+                // Use setTimeout to allow the UI to update after the course selection changes
+                // This is a common pattern for ensuring DOM elements are ready after dynamic updates.
+                setTimeout(() => { 
+                    document.getElementById('lecturerSelectStudent').value = gradeToEdit.studentEmail;
+                    document.getElementById('lecturerSemester').value = gradeToEdit.semester;
+                    document.getElementById('lecturerGradeNotes').value = gradeToEdit.notes || '';
+
+                    // Populate component score inputs
+                    if (gradeToEdit.componentScores) {
+                        gradeToEdit.componentScores.forEach(cs => {
+                            const inputField = document.getElementById(`comp-${cs.typeName.replace(/\s+/g, '-')}`);
+                            if (inputField) inputField.value = cs.score;
+                        });
+                    }
+                    // Scroll to the input area
+                    document.getElementById('lecturerGradeInputArea').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    showMessageModal("Data nilai dimuat. Ubah dan simpan.");
+                }, 250); // A small delay to ensure DOM is ready
+            } else {
+                showMessageModal("Data nilai tidak ditemukan.");
+            }
+        };
+        
+        /**
+         * Handles deleting a grade entry.
+         * @param {string} gradeId - The ID of the grade entry to delete.
+         */
+        window.lecturerDeleteGrade = (gradeId) => {
+            showConfirmationModal("Anda yakin ingin menghapus entri nilai ini?", () => {
+                let grades = getData(LS_GRADES_KEY);
+                const gradeToDelete = grades.find(g => g.id === gradeId);
+                if (!gradeToDelete) { showMessageModal("Nilai tidak ditemukan."); return; }
+
+                grades = grades.filter(g => g.id !== gradeId);
+                saveData(LS_GRADES_KEY, grades);
+                showMessageModal("Nilai berhasil dihapus.");
+                loadGradesForLecturerCourse(gradeToDelete.courseCode); // Refresh the grades table for the course
+                // Also refresh student data if the current user is a student and this grade belonged to them
+                if (currentUserRole === 'student' && currentUserEmail === gradeToDelete.studentEmail) {
+                    loadStudentData();
+                }
+            });
+        };
+
+        // --- Student Panel Functions ---
+        /** Loads and displays the current student's transcript and selected courses. */
+        function loadStudentData() {
+            // Load transcript (existing functionality)
+            const gradesTable = document.getElementById('studentGradesTable');
+            const noGradesMessage = document.getElementById('noGradesMessage');
+            
+            if (!currentUserEmail) {
+                gradesTable.innerHTML = '<tr><td colspan="6" class="text-center py-4">Pengguna tidak teridentifikasi.</td></tr>';
+                noGradesMessage.classList.add('hidden');
+                return;
+            }
+
+            const allGrades = getData(LS_GRADES_KEY);
+            const allCourses = getData(LS_COURSES_KEY);
+            
+            // Filter grades specific to the current student AND for courses they are enrolled in
+            const studentGrades = allGrades.filter(g => {
+                const courseInfo = allCourses.find(c => c.courseCode === g.courseCode);
+                return g.studentEmail === currentUserEmail && courseInfo && courseInfo.enrolledStudentEmails && courseInfo.enrolledStudentEmails.includes(currentUserEmail);
+            });
+
+            gradesTable.innerHTML = ''; // Clear existing rows
+            noGradesMessage.classList.add('hidden'); // Hide "no grades" message by default
+
+            if (studentGrades.length === 0) {
+                noGradesMessage.classList.remove('hidden'); // Show "no grades" message
+            } else {
+                studentGrades.forEach(grade => {
+                    const courseInfo = allCourses.find(c => c.courseCode === grade.courseCode) || { courseName: 'N/A', credits: 'N/A' };
+                    const row = gradesTable.insertRow();
+                    row.innerHTML = `
+                        <td class="py-2 px-3 border-b">${grade.courseCode}</td>
+                        <td class="py-2 px-3 border-b">${courseInfo.courseName}</td>
+                        <td class="py-2 px-3 border-b text-center">${courseInfo.credits}</td>
+                        <td class="py-2 px-3 border-b">${grade.semester}</td>
+                        <td class="py-2 px-3 border-b text-center">${grade.finalScore !== undefined ? grade.finalScore : 'N/A'}</td>
+                        <td class="py-2 px-3 border-b text-center">
+                            <button onclick="showGradeDetails('${grade.id}')" class="text-indigo-600 hover:text-indigo-800 text-sm">Lihat Detail</button>
+                        </td>
+                    `;
+                });
+            }
+
+            // Load selected courses (new functionality)
+            loadStudentSelectedCourses();
+        }
+        
+        /**
+         * Displays a detailed breakdown of a student's grade, including component scores.
+         * @param {string} gradeId - The ID of the grade entry to show details for.
+         */
+        window.showGradeDetails = (gradeId) => {
+            const grades = getData(LS_GRADES_KEY);
+            const grade = grades.find(g => g.id === gradeId);
+            if (grade) {
+                let detailsHtml = `
+                    <p class="mb-2"><strong>Mata Kuliah:</strong> ${grade.courseCode}</p>
+                    <p class="mb-2"><strong>Semester:</strong> ${grade.semester}</p>
+                    <p class="mb-3"><strong>Nilai Akhir: ${grade.finalScore !== undefined ? grade.finalScore : 'Belum dihitung'}</strong></p>
+                `;
+                if (grade.componentScores && grade.componentScores.length > 0) {
+                    detailsHtml += `<h5 class="text-md font-semibold mb-1">Rincian Komponen:</h5><ul>`;
+                    grade.componentScores.forEach(cs => {
+                        detailsHtml += `<li class="text-sm ml-4">${cs.typeName}: ${cs.score === null ? 'N/A' : cs.score} (Bobot: ${cs.weight}%)</li>`;
+                    });
+                    detailsHtml += `</ul>`;
+                } else {
+                    detailsHtml += `<p class="text-sm text-gray-600">Tidak ada rincian komponen nilai untuk mata kuliah ini.</p>`;
+                }
+                if(grade.notes) detailsHtml += `<p class="mt-3 text-sm"><strong>Catatan Dosen:</strong> ${grade.notes}</p>`;
+                
+                showMessageModal(detailsHtml); // Display the details in the message modal
+            } else {
+                showMessageModal("Detail nilai tidak ditemukan.");
+            }
+        };
+
+        /**
+         * Loads and displays the courses the current student is enrolled in.
+         */
+        function loadStudentSelectedCourses() {
+            const studentSelectedCoursesTable = document.getElementById('studentSelectedCoursesTable');
+            const noSelectedCoursesMessage = document.getElementById('noSelectedCoursesMessage');
+            const allCourses = getData(LS_COURSES_KEY);
+            const allUsers = getData(LS_USERS_KEY); // To get lecturer names
+            const allSemesters = getData(LS_SEMESTERS_KEY); // To get semester names
+
+            studentSelectedCoursesTable.innerHTML = ''; // Clear existing rows
+            noSelectedCoursesMessage.classList.add('hidden'); // Hide message by default
+
+            if (!currentUserEmail) {
+                studentSelectedCoursesTable.innerHTML = '<tr><td colspan="5" class="text-center py-4">Pengguna tidak teridentifikasi.</td></tr>';
+                return;
+            }
+
+            const selectedCourses = allCourses.filter(course => 
+                course.enrolledStudentEmails && course.enrolledStudentEmails.includes(currentUserEmail)
+            );
+
+            if (selectedCourses.length === 0) {
+                noSelectedCoursesMessage.classList.remove('hidden');
+                return;
+            }
+
+            selectedCourses.forEach(course => {
+                const row = studentSelectedCoursesTable.insertRow();
+                
+                // Get lecturer names
+                let lecturerNames = "Belum ada";
+                if (course.lecturerEmails && course.lecturerEmails.length > 0) {
+                    lecturerNames = course.lecturerEmails.map(email => {
+                        const lecturer = allUsers.find(u => u.email === email);
+                        return lecturer ? lecturer.name : email;
+                    }).join(', ');
+                }
+
+                // Get offered semester names
+                let offeredSemesterNames = "Tidak ada";
+                if (course.offeredInSemesters && course.offeredInSemesters.length > 0) {
+                    offeredSemesterNames = course.offeredInSemesters.map(semesterId => {
+                        const semester = allSemesters.find(s => s.id === semesterId);
+                        return semester ? semester.name : 'N/A';
+                    }).join(', ');
+                }
+
+                row.innerHTML = `
+                    <td class="py-2 px-3 border-b">${course.courseCode}</td>
+                    <td class="py-2 px-3 border-b">${course.courseName}</td>
+                    <td class="py-2 px-3 border-b text-center">${course.credits}</td>
+                    <td class="py-2 px-3 border-b text-xs">${lecturerNames}</td>
+                    <td class="py-2 px-3 border-b">${offeredSemesterNames}</td>
+                `;
+            });
+        }
+
+
+        // --- Student Course Selection Functions ---
+        /** Opens the modal for students to select courses. */
+        window.openSelectCoursesModal = () => {
+            if (!currentUserEmail) {
+                showMessageModal("Anda harus login sebagai mahasiswa untuk memilih mata kuliah.");
+                return;
+            }
+
+            const studentCourseSelectionContainer = document.getElementById('studentCourseSelectionContainer');
+            studentCourseSelectionContainer.innerHTML = ''; // Clear existing checkboxes
+
+            const allCourses = getData(LS_COURSES_KEY);
+            const allSemesters = getData(LS_SEMESTERS_KEY);
+
+            if (allCourses.length === 0) {
+                studentCourseSelectionContainer.innerHTML = '<p class="text-xs text-gray-500">Tidak ada mata kuliah yang tersedia.</p>';
+                selectCoursesModal.style.display = "flex";
+                return;
+            }
+
+            allCourses.forEach(course => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center';
+                const checkboxId = `student-course-${course.id}`;
+                const isEnrolled = course.enrolledStudentEmails && course.enrolledStudentEmails.includes(currentUserEmail);
+                
+                let semesterNames = "Tidak ada semester";
+                if (course.offeredInSemesters && course.offeredInSemesters.length > 0) {
+                    semesterNames = course.offeredInSemesters.map(semesterId => {
+                        const semester = allSemesters.find(s => s.id === semesterId);
+                        return semester ? semester.name : 'N/A';
+                    }).join(', ');
+                }
+
+                div.innerHTML = `
+                    <input id="${checkboxId}" name="studentSelectedCourses" type="checkbox" value="${course.courseCode}" 
+                            class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                            ${isEnrolled ? 'checked' : ''}>
+                    <label for="${checkboxId}" class="ml-2 block text-sm text-gray-900">
+                        ${course.courseName} (${course.courseCode}, ${course.credits} SKS) - Ditawarkan di: ${semesterNames}
+                    </label>
+                `;
+                studentCourseSelectionContainer.appendChild(div);
+            });
+            selectCoursesModal.style.display = "flex";
+        };
+
+        /** Handles saving the student's course selections. */
+        window.handleSaveStudentCourses = () => {
+            const studentCourseSelectionContainer = document.getElementById('studentCourseSelectionContainer');
+            const selectedCourseCodes = [];
+            const checkboxes = studentCourseSelectionContainer.querySelectorAll('input[name="studentSelectedCourses"]:checked');
+            checkboxes.forEach(checkbox => {
+                selectedCourseCodes.push(checkbox.value);
+            });
+
+            let courses = getData(LS_COURSES_KEY);
+            let updatedCourses = false;
+
+            courses.forEach(course => {
+                const isSelected = selectedCourseCodes.includes(course.courseCode);
+                const isCurrentlyEnrolled = course.enrolledStudentEmails && course.enrolledStudentEmails.includes(currentUserEmail);
+
+                if (isSelected && !isCurrentlyEnrolled) {
+                    // Enroll student if selected and not already enrolled
+                    if (!course.enrolledStudentEmails) {
+                        course.enrolledStudentEmails = [];
+                    }
+                    course.enrolledStudentEmails.push(currentUserEmail);
+                    updatedCourses = true;
+                } else if (!isSelected && isCurrentlyEnrolled) {
+                    // Unenroll student if not selected but currently enrolled
+                    course.enrolledStudentEmails = course.enrolledStudentEmails.filter(email => email !== currentUserEmail);
+                    updatedCourses = true;
+                }
+            });
+
+            if (updatedCourses) {
+                saveData(LS_COURSES_KEY, courses);
+                showMessageModal("Pilihan mata kuliah Anda berhasil disimpan.");
+                closeSelectCoursesModal();
+                loadStudentData(); // Refresh student transcript and selected courses
+                // Also refresh lecturer data if they are currently viewing a course that was affected
+                if (currentUserRole === 'lecturer') {
+                    const lecturerSelectedCourseCode = document.getElementById('lecturerSelectCourse').value;
+                    if (lecturerSelectedCourseCode) {
+                        document.getElementById('lecturerSelectCourse').dispatchEvent(new Event('change'));
+                    }
+                }
+            } else {
+                showMessageModal("Tidak ada perubahan pada pilihan mata kuliah Anda.");
+                closeSelectCoursesModal();
+            }
+        };
+
+
+        // --- Initialize App on DOM Content Loaded ---
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>
